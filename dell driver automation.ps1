@@ -164,6 +164,18 @@ function New-BitsDownloadList {
     return $Downloads
 }
 
+function Show-Bar {
+    param(
+        $transferred,
+        $Total
+    )
+    $barmax = 40
+    $barPercent = $([math]::round(($transferred * $barmax) / $Total))
+    $bar = ""
+    0..$barPercent | % {$bar += "▀"}
+    return $bar
+}
+
 function Start-Download {
     [CmdletBinding()]
     param(
@@ -172,12 +184,12 @@ function Start-Download {
     Begin {
         $Global:CompletedJobs = $null
         $Global:FailedJobs = $null
-        $Progressbar = New-ProgressBar
+        $Progressbar = New-ProgressBar -Size Large -MaterialDesign -Theme Dark
         $List | Start-BitsTransfer -Asynchronous -RetryInterval 60
     }
     
     Process {
-        Write-host "Waiting for jobs to Start..."
+        Write-ProgressBar -ProgressBar $Progressbar -Status "Downloading" -Activity "Waiting for jobs to Start..."
         Start-Sleep -Seconds 3
         while ((Get-BitsTransfer | Where-Object { $_.JobState -eq "Transferring" }).Count -gt 0) {     
             $totalbytes = 0;    
@@ -192,14 +204,19 @@ function Start-Download {
                 }
             }    
             #TimeRemaining = (TotalFileSize - BytesDownloaded) * TimeElapsed/BytesDownloaded
-            if ($totalbytes -gt 0) {        
+            if ($totalbytes -gt 0) {              
                 [int]$timeLeft = ($totalBytes - $bytestransferred) * ($timeTaken / $bytestransferred)
                 [int]$pctComplete = $(($bytestransferred * 100) / $totalbytes);     
                 Write-ProgressBar -ProgressBar $Progressbar `
                     -Activity "Downloading Files $timeLeft" `
                     -PercentComplete $pctComplete `
                     -Status ((Get-BitsTransfer | select @{n = 'File'; e = { Split-path $_.filelist.remotename -Leaf } },
-                        @{n = 'Percent Complete'; e = { "$([math]::round(($_.Bytestransferred * 100) / $_.bytestotal))%" } }) | ft -HideTableHeaders | out-string) `
+                    @{n = 'Percent Complete'; e = {
+                        "$([math]::round(($_.Bytestransferred * 100) / $_.bytestotal))%: $(Show-bar -transferred $_.Bytestransferred -Total $_.bytestotal)"
+                        
+                    } }),
+                    @{n = 'Progress';e={(Show-bar -transferred $_.Bytestransferred -Total $_.bytestotal)}} |
+                    ft -HideTableHeaders | out-string) `
                     -SecondsRemaining "$timeLeft" `
                     -CurrentOperation "Time remaning"
                 #Write-Progress -Status "Transferring $bytestransferred of $totalbytes ($pctComplete%). $timeLeft minutes remaining." -Activity "Dowloading files" -PercentComplete $pctComplete  
@@ -223,3 +240,4 @@ function Start-Download {
         }
     }
 }
+
