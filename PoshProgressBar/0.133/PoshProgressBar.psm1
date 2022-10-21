@@ -156,7 +156,7 @@ Function New-ProgressBar {
                
                <TextBlock Name="PercentCompleteTextBlock" Visibility="Hidden" StackPanel.ZIndex = "99" Text="{Binding ElementName=ProgressBar, Path=Value, StringFormat={}{0:0}%}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                <TextBlock Name="Status" Text="" HorizontalAlignment="Left" FontFamily="Consolas" />
-               <TextBlock Name="TimeRemaining" Text="" HorizontalAlignment="Left" />
+               <TextBlock Name="TimeRemaining" Text="" HorizontalAlignment="Left" /> 
                <TextBlock Name="CurrentOperation" Text="" HorizontalAlignment="Left" />
             </StackPanel> 
         </Window> 

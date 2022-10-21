@@ -1,4 +1,5 @@
-﻿function Get-DellDriverPack {
+﻿import-Module .\PoshProgressBar
+function Get-DellDriverPack {
     #Web Scraper. Not very flexible 
     param(
         $Model,
@@ -169,10 +170,11 @@ function Show-Bar {
         $transferred,
         $Total
     )
-    $barmax = 40
+    $e = [char]0x1b
+    $barmax = 20
     $barPercent = $([math]::round(($transferred * $barmax) / $Total))
     $bar = ""
-    0..$barPercent | % {$bar += "▀"}
+    0..$barPercent | % {$bar += "▆"}
     return $bar
 }
 
@@ -207,16 +209,16 @@ function Start-Download {
             if ($totalbytes -gt 0) {              
                 [int]$timeLeft = ($totalBytes - $bytestransferred) * ($timeTaken / $bytestransferred)
                 [int]$pctComplete = $(($bytestransferred * 100) / $totalbytes);     
-                Write-ProgressBar -ProgressBar $Progressbar `
+                Write-ProgressBar `
+                    -ProgressBar $Progressbar `
                     -Activity "Downloading Files $timeLeft" `
                     -PercentComplete $pctComplete `
-                    -Status ((Get-BitsTransfer | select @{n = 'File'; e = { Split-path $_.filelist.remotename -Leaf } },
-                    @{n = 'Percent Complete'; e = {
-                        "$([math]::round(($_.Bytestransferred * 100) / $_.bytestotal))%: $(Show-bar -transferred $_.Bytestransferred -Total $_.bytestotal)"
-                        
-                    } }),
-                    @{n = 'Progress';e={(Show-bar -transferred $_.Bytestransferred -Total $_.bytestotal)}} |
-                    ft -HideTableHeaders | out-string) `
+                    -Status (
+                        Get-BitsTransfer | select `
+                            @{n = 'File'; e = { Split-path $_.filelist.remotename -Leaf } },
+                            @{n = 'Percent Complete'; e = {"$([math]::round(($_.Bytestransferred * 100) / $_.bytestotal))%:$((Show-bar -transferred $_.Bytestransferred -Total $_.bytestotal))"} } |
+                            ft -HideTableHeaders | out-string `
+                    ) `
                     -SecondsRemaining "$timeLeft" `
                     -CurrentOperation "Time remaning"
                 #Write-Progress -Status "Transferring $bytestransferred of $totalbytes ($pctComplete%). $timeLeft minutes remaining." -Activity "Dowloading files" -PercentComplete $pctComplete  
